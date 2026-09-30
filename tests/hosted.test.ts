@@ -65,24 +65,25 @@ test('hosted search stops after three empty batches and cancels a disconnected r
   expect(signal!.aborted).toBe(true);
 });
 
-test('Astra accepts only candidate IDs and keeps raw provider failures private', async () => {
-  const completed = (result: unknown) => ({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(result) }] }] });
+test('the curator accepts only candidate IDs and keeps raw provider failures private', async () => {
+  const completed = (result: unknown) => ({ model: 'test-model', choices: [{ message: { content: JSON.stringify(result) } }] });
   expect(parseCuration(completed({ ids: ['nasa-1'], summary: 'A lunar surface study.' }), new Set(['nasa-1']), 20).ids).toEqual(['nasa-1']);
   for (const ids of [['invented'], ['nasa-1', 'nasa-1']]) expect(() => parseCuration(completed({ ids, summary: 'Test' }), new Set(['nasa-1']), 20)).toThrow();
   let payload: any;
-  const result = await curateWithAstra(body.brief, [ref], keyA, new AbortController().signal, (async (url: any, init: any) => {
-    expect(url).toBe('https://api.openai.com/v1/responses');
+  const result = await curateWithAstra(body.brief, [ref], keyA, new AbortController().signal, undefined, (async (url: any, init: any) => {
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
     expect(init.headers.Authorization).toBe(`Bearer ${keyA}`);
     expect(init.credentials).toBe('omit');
     expect(init.redirect).toBe('error');
     payload = JSON.parse(init.body);
     return Response.json(completed({ ids: ['nasa-1'], summary: 'A lunar surface study.' }));
   }));
-  expect(payload.store).toBe(false);
-  expect(payload.model).toBe('gpt-6-astra');
+  expect(payload.response_format.type).toBe('json_schema');
+  expect(payload.model).toBe('meta-llama/llama-3.3-70b-instruct:free');
   expect(JSON.stringify(payload)).not.toContain(keyA);
   expect(result.ids).toEqual(['nasa-1']);
-  await expect(curateWithAstra(body.brief, [ref], keyA, new AbortController().signal, async () => new Response('private provider details', { status: 401 }))).rejects.toThrow('OpenAI rejected');
+  expect(result.model).toBe('test-model');
+  await expect(curateWithAstra(body.brief, [ref], keyA, new AbortController().signal, undefined, async () => new Response('private provider details', { status: 401 }))).rejects.toThrow('provider rejected');
 });
 
 test('both retired model proxies reject old requests without reading their body', async () => {

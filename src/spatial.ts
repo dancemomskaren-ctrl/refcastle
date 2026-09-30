@@ -25,7 +25,7 @@ let history: History[] = [];
 let latest: SpaceRun | null = null;
 let busy = false, configured = false, stopped = false, savedView = false;
 let hosted = true, localMode = false, localConfigured = false;
-let openaiKey = '';
+let curatorKey = '';
 let astraPicks: string[] = [];
 let recordedBrowserFrames = 0;
 let abort: AbortController | null = null;
@@ -89,9 +89,9 @@ function updateControls() {
   $('jev-local-note').hidden = localMode;
   $<HTMLInputElement>('jev-key').disabled = busy || !localMode;
   $<HTMLButtonElement>('connect-key').disabled = busy || !localMode;
-  $<HTMLButtonElement>('connect-openai').disabled = busy;
+  $<HTMLButtonElement>('connect-curator').disabled = busy;
   $<HTMLButtonElement>('clear-keys').disabled = busy;
-  $<HTMLInputElement>('use-astra').disabled = busy || !openaiKey;
+  $<HTMLInputElement>('use-astra').disabled = busy || !curatorKey;
   $('hud').dataset.state = busy ? 'running' : latest?.status === 'error' ? 'error' : savedView ? 'saved' : 'complete';
 }
 
@@ -234,17 +234,17 @@ async function explore() {
   latest = { startedAt: new Date().toISOString(), mode: 'creator', continuous: true, brief, styles: [...styles], media, status: 'running', totalMs: 0, firstImageMs: null, retrievalMs: null, events: [], selected: [...pins], pinned: [...pins] };
   const run = latest, runStyles = [...styles], runPins = [...pins];
   const signal = abort.signal;
-  const runOpenaiKey = $<HTMLInputElement>('use-astra').checked ? openaiKey : '';
+  const runCuratorKey = $<HTMLInputElement>('use-astra').checked ? curatorKey : '';
   let curationTask: Promise<void> | undefined;
   const receive = (event: ResearchEvent) => {
     eventReceived(event);
-    if (event.type === 'retrieval-complete' && runOpenaiKey && !curationTask) {
+    if (event.type === 'retrieval-complete' && runCuratorKey && !curationTask) {
       const references = run.events.filter((item): item is Extract<ResearchEvent, { type: 'candidate' }> => item.type === 'candidate').slice(0, 100).map(({ reference: ref }) => ({ id: ref.id, title: ref.title.slice(0, 200), description: ref.description.slice(0, 600), sourceName: ref.sourceName }));
       if (!references.length) return;
       $('curation-summary').hidden = false; $('curation-summary').textContent = 'Astra is curating the first batch…';
       curationTask = (async () => {
         try {
-          const result = await curateWithAstra(styledBrief(brief, runStyles), references, runOpenaiKey, signal);
+          const result = await curateWithAstra(styledBrief(brief, runStyles), references, runCuratorKey, signal);
           if (!signal.aborted && latest === run) eventReceived({ type: 'curation', atMs: Math.round(performance.now() - started), ...result });
         } catch (error) {
           if (!signal.aborted && latest === run) $('curation-summary').textContent = error instanceof Error ? error.message : 'Astra could not finish. Your images are kept.';
@@ -386,20 +386,20 @@ $('key-form').addEventListener('submit', async event => {
   } catch (error) { $('key-status').textContent = error instanceof Error ? error.message : 'The connection failed.'; }
   finally { button.disabled = false; }
 });
-$('openai-form').addEventListener('submit', event => {
+$('curator-form').addEventListener('submit', event => {
   event.preventDefault(); if (busy) return;
-  const field = $<HTMLInputElement>('openai-key');
+  const field = $<HTMLInputElement>('curator-key');
   try {
-    openaiKey = providerKey(field.value, 'OpenAI'); field.value = '';
+    curatorKey = providerKey(field.value, 'Curator'); field.value = '';
     $<HTMLInputElement>('use-astra').checked = true;
-    $('openai-status').textContent = 'Key set for this tab. Access is checked on your next review.'; updateControls();
-  } catch (error) { $('openai-status').textContent = error instanceof Error ? error.message : 'The key could not be read.'; }
+    $('curator-status').textContent = 'Key set for this tab. Access is checked on your next review.'; updateControls();
+  } catch (error) { $('curator-status').textContent = error instanceof Error ? error.message : 'The key could not be read.'; }
 });
 $('clear-keys').addEventListener('click', () => {
   if (busy) return;
-  openaiKey = '';
+  curatorKey = '';
   $<HTMLInputElement>('use-astra').checked = false;
-  $<HTMLInputElement>('jev-key').value = ''; $<HTMLInputElement>('openai-key').value = '';
-  $('key-status').textContent = 'Tab keys cleared.'; $('openai-status').textContent = ''; updateControls();
+  $<HTMLInputElement>('jev-key').value = ''; $<HTMLInputElement>('curator-key').value = '';
+  $('key-status').textContent = 'Tab keys cleared.'; $('curator-status').textContent = ''; updateControls();
 });
 void connectStatus();

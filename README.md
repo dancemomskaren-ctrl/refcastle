@@ -99,7 +99,7 @@ Search phrases come from bounded options built from the brief; image options als
 
 References appear before the final image highlights. Jev does not watch clips, transcribe speech, identify sound hooks or visually review the images.
 
-The fast Explore path uses source APIs and public page responses. It does not operate a browser or require Astra. The optional OpenAI review and older browser/Codex experiments are documented in [How it works](docs/HOW_IT_WORKS.md).
+The fast Explore path uses source APIs and public page responses. It does not operate a browser or require Astra. The optional curator review and older browser/Codex experiments are documented in [How it works](docs/HOW_IT_WORKS.md).
 
 ## Local and hosted keys
 
@@ -108,9 +108,9 @@ The fast Explore path uses source APIs and public page responses. It does not op
 | Query selection | Jev chooses bounded phrases, with the sample/fallback behavior above | Code chooses phrases from the prompt and styles |
 | Image and video retrieval | Source collectors on your local server | Source collectors on the hosted backend |
 | Jev key | Your local `.env`; requests go from your local backend to TypeSafe | No Jev key is accepted or used |
-| Optional OpenAI review | Direct browser-to-OpenAI request | Direct browser-to-OpenAI request |
+| Optional curator review | Direct browser-to-OpenRouter request | Direct browser-to-OpenRouter request |
 
-The OpenAI key stays in tab memory and goes directly to OpenAI, bypassing the RefCastle server. Refreshing or clearing tab keys removes it. API access and billing belong to the person supplying the key; a ChatGPT/Codex subscription does not supply an API key. Sharing the site link does not share your tab's key or your local `.env`.
+The curator key stays in tab memory and goes directly to OpenRouter, bypassing the RefCastle server. The default model (`meta-llama/llama-3.3-70b-instruct:free`) is free; paid models bill only what you use to your own OpenRouter account — no subscription supplies an API key. Refreshing or clearing tab keys removes it. Sharing the site link does not share your tab's key or your local `.env`.
 
 Saved searches and exported records contain prompts, references, decisions and timings. They exclude provider keys. The hosted build does not inherit the maintainer's local Jev key or Codex login.
 

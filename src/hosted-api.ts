@@ -35,7 +35,7 @@ export async function handleConnection(_request: Request) {
 
 export async function handleResearch(request: Request, runBatch = runSourceSearch) {
   try {
-    if (['x-jev-key', 'x-openai-key', 'authorization'].some(name => request.headers.has(name))) throw new RequestError('Refresh this page. Source searches do not accept API keys.', 410);
+    if (['x-jev-key', 'x-openai-key', 'x-curator-key', 'authorization'].some(name => request.headers.has(name))) throw new RequestError('Refresh this page. Source searches do not accept API keys.', 410);
     const body = await readRequest(request);
     if (Object.keys(body).some(name => !['mode', 'continuous', 'brief', 'styles', 'media', 'selected', 'cursor'].includes(name))) throw new RequestError('Send only your prompt, styles and search history. API keys are not accepted.');
     const input = validateCreatorInput(body);
@@ -72,5 +72,5 @@ export async function handleResearch(request: Request, runBatch = runSourceSearc
 }
 
 export async function handleCuration(_request: Request) {
-  return json({ error: 'Refresh this page. OpenAI reviews now connect directly from your browser; this endpoint no longer processes OpenAI API keys.' }, 410);
+  return json({ error: 'Refresh this page. Curator reviews now connect directly from your browser; this endpoint no longer processes model provider keys.' }, 410);
 }
