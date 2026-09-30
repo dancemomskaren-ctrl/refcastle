@@ -5,7 +5,7 @@ import { CREATOR_BRIEFS } from './presets';
 import { BOARD_SIZE } from './decision';
 import type { Reference, ResearchEvent, DiscoveryCursor, SourceKey } from './types';
 import { providerKey } from './provider-keys';
-import { curateWithAstra } from './astra-api';
+import { curateWithAstra, fetchCuratorModels, pickFreeCuratorModel, CURATOR_PAID_PRESETS, type CuratorModel } from './astra-api';
 import { validateMedia, safeArchiveVideo, durationLabel } from './media';
 import type { MediaMode } from './types';
 import { imageSourceShares } from './source-balance';
@@ -26,6 +26,7 @@ let latest: SpaceRun | null = null;
 let busy = false, configured = false, stopped = false, savedView = false;
 let hosted = true, localMode = false, localConfigured = false;
 let curatorKey = '';
+let curatorModels: CuratorModel[] = [];
 let astraPicks: string[] = [];
 let recordedBrowserFrames = 0;
 let abort: AbortController | null = null;
@@ -235,6 +236,7 @@ async function explore() {
   const run = latest, runStyles = [...styles], runPins = [...pins];
   const signal = abort.signal;
   const runCuratorKey = $<HTMLInputElement>('use-astra').checked ? curatorKey : '';
+  const runCuratorModel = $<HTMLInputElement>('use-astra').checked ? selectedCuratorModel() : '';
   let curationTask: Promise<void> | undefined;
   const receive = (event: ResearchEvent) => {
     eventReceived(event);
@@ -244,7 +246,7 @@ async function explore() {
       $('curation-summary').hidden = false; $('curation-summary').textContent = 'Astra is curating the first batch…';
       curationTask = (async () => {
         try {
-          const result = await curateWithAstra(styledBrief(brief, runStyles), references, runCuratorKey, signal);
+          const result = await curateWithAstra(styledBrief(brief, runStyles), references, runCuratorKey, signal, runCuratorModel);
           if (!signal.aborted && latest === run) eventReceived({ type: 'curation', atMs: Math.round(performance.now() - started), ...result });
         } catch (error) {
           if (!signal.aborted && latest === run) $('curation-summary').textContent = error instanceof Error ? error.message : 'Astra could not finish. Your images are kept.';
@@ -386,13 +388,44 @@ $('key-form').addEventListener('submit', async event => {
   } catch (error) { $('key-status').textContent = error instanceof Error ? error.message : 'The connection failed.'; }
   finally { button.disabled = false; }
 });
+const $model = $<HTMLSelectElement>('curator-model');
+const $customModel = $<HTMLInputElement>('custom-model');
+function formatModel(model: CuratorModel) {
+  const price = Number(model.pricing?.prompt || 0) * 1_000_000;
+  const context = model.context_length ? ` · ${Math.round(model.context_length / 1000)}k` : '';
+  return `${model.id}${context}${price ? ` · $${price.toFixed(2)}/M` : ''}`;
+}
+function selectedCuratorModel(): string {
+  if ($model.value === 'custom') return $customModel.value.trim() || pickFreeCuratorModel(curatorModels);
+  return $model.value || pickFreeCuratorModel(curatorModels);
+}
+async function loadCuratorModels() {
+  if (curatorModels.length) return;
+  try {
+    curatorModels = await fetchCuratorModels();
+    const free = curatorModels.filter(model => model.id.endsWith(':free') && !/code|safety|preview/i.test(model.id));
+    const paid = CURATOR_PAID_PRESETS.map(id => curatorModels.find(model => model.id === id)).filter(Boolean) as CuratorModel[];
+    const options = [
+      ...free.map(model => ({ value: model.id, label: `Free · ${formatModel(model)}` })),
+      ...paid.map(model => ({ value: model.id, label: formatModel(model) })),
+    ];
+    $model.replaceChildren(
+      Object.assign(document.createElement('option'), { value: '', textContent: 'Auto — best free model' }),
+      ...options.map(option => Object.assign(document.createElement('option'), { value: option.value, textContent: option.label })),
+      Object.assign(document.createElement('option'), { value: 'custom', textContent: 'Custom model id…' }),
+    );
+  } catch { /* The Auto fallback still works without a catalog. */ }
+}
+$model.addEventListener('change', () => { $customModel.hidden = $model.value !== 'custom'; });
+void loadCuratorModels();
+
 $('curator-form').addEventListener('submit', event => {
   event.preventDefault(); if (busy) return;
   const field = $<HTMLInputElement>('curator-key');
   try {
     curatorKey = providerKey(field.value, 'Curator'); field.value = '';
     $<HTMLInputElement>('use-astra').checked = true;
-    $('curator-status').textContent = 'Key set for this tab. Access is checked on your next review.'; updateControls();
+    $('curator-status').textContent = selectedCuratorModel() ? `Key set for this tab. Model: ${selectedCuratorModel()}. Access is checked on your next review.` : 'Key set for this tab. Access is checked on your next review.'; updateControls();
   } catch (error) { $('curator-status').textContent = error instanceof Error ? error.message : 'The key could not be read.'; }
 });
 $('clear-keys').addEventListener('click', () => {

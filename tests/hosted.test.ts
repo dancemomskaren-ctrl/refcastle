@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { handleResearch, handleStatus, handleConnection, handleCuration } from '../src/hosted-api';
 import { readCursor, saveCursor } from '../src/hosted-session';
-import { curateWithAstra, parseCuration } from '../src/astra-api';
+import { curateWithAstra, parseCuration, pickFreeCuratorModel, autoCuratorModel, CURATOR_FALLBACK_MODEL } from '../src/astra-api';
 import { runSourceSearch, sourceSearches } from '../src/public-research';
 import { collectCreatorSources } from '../src/creator-collection';
 import type { Reference, ResearchEvent } from '../src/types';
@@ -65,6 +65,16 @@ test('hosted search stops after three empty batches and cancels a disconnected r
   expect(signal!.aborted).toBe(true);
 });
 
+test('the model picker prefers capable free models and falls back to a cheap paid model', async () => {
+  expect(pickFreeCuratorModel([
+    { id: 'vendor/code:free', context_length: 200000 },
+    { id: 'vendor/small:free', context_length: 8000 },
+    { id: 'vendor/big:free', context_length: 200000 },
+  ])).toBe('vendor/big:free');
+  expect(pickFreeCuratorModel([])).toBe(CURATOR_FALLBACK_MODEL);
+  await expect(autoCuratorModel(async () => new Response('catalog unavailable', { status: 500 }))).resolves.toBe(CURATOR_FALLBACK_MODEL);
+});
+
 test('the curator accepts only candidate IDs and keeps raw provider failures private', async () => {
   const completed = (result: unknown) => ({ model: 'test-model', choices: [{ message: { content: JSON.stringify(result) } }] });
   expect(parseCuration(completed({ ids: ['nasa-1'], summary: 'A lunar surface study.' }), new Set(['nasa-1']), 20).ids).toEqual(['nasa-1']);
@@ -79,7 +89,7 @@ test('the curator accepts only candidate IDs and keeps raw provider failures pri
     return Response.json(completed({ ids: ['nasa-1'], summary: 'A lunar surface study.' }));
   }));
   expect(payload.response_format.type).toBe('json_schema');
-  expect(payload.model).toBe('meta-llama/llama-3.3-70b-instruct:free');
+  expect(payload.model).toBe(CURATOR_FALLBACK_MODEL);
   expect(JSON.stringify(payload)).not.toContain(keyA);
   expect(result.ids).toEqual(['nasa-1']);
   expect(result.model).toBe('test-model');
