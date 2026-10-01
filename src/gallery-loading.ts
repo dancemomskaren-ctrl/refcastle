@@ -1,7 +1,9 @@
 import { referenceSource, emptyCounts } from './source-balance';
-import type { Reference } from './types';
+import type { Reference, MediaSourceKey } from './types';
 import { ReferenceIdentity } from './reference-identity';
-import type { MediaSourceKey } from './types';
+
+const VIDEO_LANES = { archive: 0, pexelsvideo: 0, commonsvideo: 0 } as Record<'archive' | 'pexelsvideo' | 'commonsvideo', number>;
+const emptyGallerySources = (): Record<MediaSourceKey, number> => ({ ...emptyCounts(), ...VIDEO_LANES });
 
 export const PRIORITY_IMAGES = 100;
 export type GalleryEntry = { ref: Reference; slot: number; priority: boolean };
@@ -10,7 +12,7 @@ export type GalleryEntry = { ref: Reference; slot: number; priority: boolean };
 export class GalleryCollection {
   private ids = new Set<string>();
   private identity = new ReferenceIdentity();
-  sources: Record<MediaSourceKey, number> = { ...emptyCounts(), archive: 0 };
+  sources: Record<MediaSourceKey, number> = emptyGallerySources();
   get size() { return this.ids.size; }
 
   add(ref: Reference): GalleryEntry | undefined {
@@ -24,7 +26,7 @@ export class GalleryCollection {
 
   clear() {
     this.ids.clear(); this.identity.clear();
-    this.sources = { ...emptyCounts(), archive: 0 };
+    this.sources = emptyGallerySources();
   }
 }
 

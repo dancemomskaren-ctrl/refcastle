@@ -51,7 +51,7 @@ test('archive streaming deduplicates, bounds requests, paginates and keeps video
   expect(first).toHaveLength(12); expect(peak).toBeLessThanOrEqual(3);
   const gallery = new GalleryCollection();
   for (const event of first) if (event.type === 'candidate') gallery.add(event.reference);
-  expect(gallery.sources).toEqual({ met: 0, cosmos: 0, nasa: 0, archive: 12, unsplash: 0, pexels: 0, openverse: 0, flickr: 0, pinterest: 0 });
+  expect(gallery.sources).toEqual({ met: 0, cosmos: 0, nasa: 0, archive: 12, unsplash: 0, pexels: 0, openverse: 0, flickr: 0, pinterest: 0, pexelsvideo: 0, commonsvideo: 0 });
   const resumed = readCursor(saveCursor(context, 0)).context;
   resumed.round = 1; // Same query must advance its page, not replay page one.
   await collectArchiveVideos({ brief: 'coffee commercials', selected: [] }, new AbortController().signal, event => sent.push(event), resumed, undefined, fake);

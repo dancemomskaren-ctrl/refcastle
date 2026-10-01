@@ -18,7 +18,7 @@
     <form id="prompt-form">
       <label class="prompt-label" for="brief">Your prompt</label>
       <textarea id="brief" rows="3" minlength="8" maxlength="2000" required spellcheck="true" placeholder="Describe the images or short videos you want…"></textarea>
-      <fieldset class="media-options"><legend class="sr-only">Reference formats</legend><label><input id="media-images" type="checkbox" checked /> Images</label><label><input id="media-videos" type="checkbox" /> Short videos</label><span id="video-hint" hidden>Archive · ≤3 min · muted previews</span></fieldset>
+      <fieldset class="media-options"><legend class="sr-only">Reference formats</legend><label><input id="media-images" type="checkbox" checked /> Images</label><label><input id="media-videos" type="checkbox" /> Short videos</label><span id="video-hint" hidden>Archive · ≤3 min · muted previews</span><span id="video-hint-key" class="video-hint-key" hidden>Pexels clips unlock with a free Pexels key in .env</span></fieldset>
       <div class="prompt-actions"><details id="style-options"><summary id="style-summary">Styles</summary><fieldset class="style-field"><legend>Try a visual direction</legend><div id="styles" class="styles"></div></fieldset></details>
       <button id="explore" class="create-button" type="submit"><span id="explore-label">Explore</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     </form>

@@ -43,7 +43,7 @@ Stopping discovery keeps the collected references and their video playback. The 
 
 ## Video sources and playback
 
-The video source is **Prelinger Archives on Internet Archive**, covering historical advertising, animation and short films. There is no TikTok integration or Instagram feed scraping.
+The video lanes are **Prelinger Archives on Internet Archive** (historical advertising, animation and short films), **Wikimedia Commons** (openly licensed clips, no key needed) and **Pexels** stock clips (unlocks with the free `PEXELS_API_KEY`). There is no TikTok integration or Instagram feed scraping.
 
 Clips must have MP4 metadata reporting a duration of **up to three minutes** and a file size of **at most 80 MB**. Each batch examines up to 36 items and can add up to 12 eligible clips. Missing duration, restricted items and unsupported files are skipped.
 
@@ -139,6 +139,8 @@ Saved searches and exported records contain prompts, references, decisions and t
 | Cosmos | Public search-page response | Experimental adapter. Cosmos restricts automated access; use requires appropriate permission. |
 | Pinterest | Unofficial public search endpoint, optionally with your own cookie (`PINTEREST_COOKIE`) | Experimental adapter, like Cosmos. Pinterest has no public search API and restricts automated access; ensure your use complies with their terms. |
 | Internet Archive / Prelinger | Search and item metadata APIs; eligible MP4s stream from the archive | Check each item's rights and attribution. Being in the archive does not grant blanket reuse permission. |
+| Wikimedia Commons | Public media API; openly licensed webm/ogg clips stream from Wikimedia | Check each file page's license and attribution requirements. |
+| Pexels Videos | Official API with the `PEXELS_API_KEY` image-source key; MP4s stream from Pexels | Pexels license terms apply; attribution is appreciated. |
 
 Referenced images, clips, descriptions and third-party marks retain their own rights. See [source policies and attribution](NOTICE.md) and the [video source notes](docs/SHORT_VIDEOS.md).
 

@@ -52,6 +52,7 @@ Bun.serve({
         sourceMethods: Object.fromEntries(SOURCE_KEYS.map(key => [key, SOURCE_METHODS[key]])),
         sourceNames: Object.fromEntries(SOURCE_KEYS.map(key => [key, SOURCE_NAMES[key]])),
         sources: Object.fromEntries(activeSources().map(source => [source.key, { name: SOURCE_NAMES[source.key], method: SOURCE_METHODS[source.key], requiresKey: source.requiresKey || '' }])),
+        videoSources: { pexels: Boolean(process.env.PEXELS_API_KEY) },
       });
     }
     if (url.pathname === '/api/connect-jev') {

@@ -4,12 +4,12 @@ import type { SourceKey } from '../src/types';
 
 const legacy: SourceKey[] = ['met', 'nasa', 'cosmos'];
 
-const none = () => ({ ...emptyCounts() });
+const none = () => ({ ...emptyCounts(), archive: 0, pexelsvideo: 0, commonsvideo: 0 });
 
 test('batch budgets close accumulated source deficits and preserve the target', () => {
-  expect(sourceQuotas(30, { ...none(), met: 0, nasa: 10, cosmos: 33 }, legacy)).toEqual({ ...none(), met: 20, nasa: 10, cosmos: 0 });
-  expect(sourceQuotas(30, { ...none(), met: 34, nasa: 33, cosmos: 33 }, legacy)).toEqual({ ...none(), met: 10, nasa: 10, cosmos: 10 });
-  expect(sourceQuotas(30, { ...none(), met: 100, nasa: 0, cosmos: 100 }, legacy)).toEqual({ ...none(), met: 0, nasa: 30, cosmos: 0 });
+  expect(sourceQuotas(30, { ...none(), met: 0, nasa: 10, cosmos: 33 }, legacy)).toEqual({ ...emptyCounts(), met: 20, nasa: 10, cosmos: 0 });
+  expect(sourceQuotas(30, { ...none(), met: 34, nasa: 33, cosmos: 33 }, legacy)).toEqual({ ...emptyCounts(), met: 10, nasa: 10, cosmos: 10 });
+  expect(sourceQuotas(30, { ...none(), met: 100, nasa: 0, cosmos: 100 }, legacy)).toEqual({ ...emptyCounts(), met: 0, nasa: 30, cosmos: 0 });
 });
 
 test('seven sources split capacity evenly and catch up deficits', () => {
@@ -22,10 +22,10 @@ test('seven sources split capacity evenly and catch up deficits', () => {
 });
 
 test('displayed image shares total 100 and exclude separate video counts', () => {
-  const zero = imageSourceShares({ ...none(), archive: 0 });
+  const zero = imageSourceShares(none());
   expect(Object.values(zero).reduce((a, b) => a + b, 0)).toBe(0);
-  const shares = imageSourceShares({ ...none(), archive: 0, met: 7, nasa: 0, cosmos: 3 });
-  expect(shares).toEqual({ ...none(), met: 70, nasa: 0, cosmos: 30 });
+  const shares = imageSourceShares({ ...none(), met: 7, nasa: 0, cosmos: 3 });
+  expect(shares).toEqual({ ...emptyCounts(), met: 70, nasa: 0, cosmos: 30 });
   const mixed = imageSourceShares({ ...none(), archive: 7, met: 36, nasa: 17, cosmos: 26 });
   expect(Object.values(mixed).reduce((a, b) => a + b, 0)).toBe(100);
   expect(mixed.met).toBe(46);

@@ -1,9 +1,11 @@
-import type { Reference, SourceKey } from './types';
+import type { Reference, SourceKey, MediaSourceKey } from './types';
 import { sourceQuotas, emptyCounts } from './source-balance';
 import { ReferenceIdentity } from './reference-identity';
 import { SOURCE_KEYS } from './sources';
 
 type ImageReference = Reference & { sourceKey: SourceKey };
+const IMAGE_KEYS = new Set<string>(SOURCE_KEYS);
+const isImageSource = (key: MediaSourceKey | undefined): key is SourceKey => key !== undefined && IMAGE_KEYS.has(key);
 
 /** Release a balanced stream, holding faster sources until slower ones can contribute. */
 export function createCreatorPool(target: number, receive: (ref: ImageReference) => void, previous: Record<SourceKey, number> = emptyCounts(), keys: SourceKey[] = SOURCE_KEYS, guards: SourceKey[] = ['cosmos']) {
@@ -47,7 +49,8 @@ export function createCreatorPool(target: number, receive: (ref: ImageReference)
     available(key: SourceKey) { return accepted[key]; },
     held(key: SourceKey) { return waiting[key].length; },
     offer(ref: Reference) {
-      if (!ref.sourceKey || ref.sourceKey === 'archive' || finished.has(ref.sourceKey) || accepted[ref.sourceKey] >= quota[ref.sourceKey] || count >= target || !identity.add(ref)) return;
+      // Video-only lanes (archive, Pexels clips, Commons clips) stream outside the balanced image pool.
+      if (!isImageSource(ref.sourceKey) || finished.has(ref.sourceKey) || accepted[ref.sourceKey] >= quota[ref.sourceKey] || count >= target || !identity.add(ref)) return;
       accepted[ref.sourceKey]++; waiting[ref.sourceKey].push({ ...ref, sourceKey: ref.sourceKey }); drain();
     },
     finish(key: SourceKey) { finished.add(key); drain(); },

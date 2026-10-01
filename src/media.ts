@@ -8,13 +8,23 @@ export function validateMedia(value: unknown): MediaMode {
   throw new RequestError('Choose Images, Short videos, or both.');
 }
 
-export function safeArchiveVideo(video: Reference['video']): boolean {
+/** Video hosts the player is allowed to stream from. Each maps to a vetted source adapter. */
+const VIDEO_HOSTS = new Set(['archive.org', 'videos.pexels.com', 'upload.wikimedia.org']);
+
+export function safeVideo(video: Reference['video']): boolean {
   if (!video || !Number.isFinite(video.durationSeconds) || video.durationSeconds <= 0 || video.durationSeconds > MAX_VIDEO_SECONDS) return false;
   try {
     const url = new URL(video.url);
-    return url.protocol === 'https:' && url.hostname === 'archive.org' && !url.username && !url.password && !url.port && url.pathname.startsWith('/download/') && url.pathname.endsWith('.mp4');
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    if (!VIDEO_HOSTS.has(url.hostname)) return false;
+    if (url.hostname === 'archive.org') return url.pathname.startsWith('/download/') && url.pathname.endsWith('.mp4');
+    if (url.hostname === 'videos.pexels.com') return url.pathname.endsWith('.mp4');
+    return /\.(webm|ogg|ogv)$/i.test(url.pathname);
   } catch { return false; }
 }
+
+/** Kept name for existing callers; validation is now shared across video sources. */
+export const safeArchiveVideo = safeVideo;
 
 export function durationLabel(seconds: number): string {
   const whole = Math.ceil(seconds);
