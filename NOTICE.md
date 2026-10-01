@@ -8,6 +8,8 @@ The MIT license applies to RefCastle's original application code and documentati
 - Pinterest does not offer a public search API and its terms restrict automated access. This adapter reads Pinterest's public search response without authentication (or with the operator's own browser cookie via `PINTEREST_COOKIE`) and is experimental, like Cosmos. It is your responsibility to ensure your use complies with Pinterest's terms; unauthenticated requests are rate limited and may stop working at any time.
 - [Wikimedia Commons](https://commons.wikimedia.org/) provides openly licensed video clips through its public API. Check each file page for its exact license and required attribution.
 - [Pexels Videos](https://www.pexels.com/api/) uses the same free API key as the Pexels image source; Pexels license terms apply to each clip.
+- [Pixabay Videos](https://pixabay.com/api/docs/) uses a free API key; clips are embedded under the Pixabay Content License and remain subject to its terms.
+- NASA video clips stream from NASA's public asset servers; NASA's media-use guidance applies to each item.
 - The sample catalog contains external URLs and attributed source metadata. It is a legacy demonstration catalog, not a bundled image library or a rights-cleared commercial asset pack.
 
 The README cover is original generated concept artwork made for RefCastle. It does not depict an actual search result. Its creation prompt is in [ART.md](docs/ART.md). No retrieved third-party artwork was uploaded as an image-generation input.

@@ -1,7 +1,7 @@
 import { RequestError } from './decision';
 import { emptyQuerySets, providerKeyValue } from './sources';
 import { MAX_VIDEO_SECONDS } from './media';
-import { collectCommonsVideos, collectPexelsVideos } from './video-sources';
+import { collectCommonsVideos, collectPexelsVideos, collectPixabayVideos, collectNasaVideos } from './video-sources';
 import type { CreatorInput, Reference, ResearchEvent } from './types';
 import type { DiscoveryContext } from './creator-collection';
 
@@ -117,10 +117,13 @@ export async function runMediaBatch(input: CreatorInput, signal: AbortSignal, se
   };
   const tasks = [collectArchiveVideos(input, signal, forward, discovery, choose)];
   if (input.media === 'both') tasks.push(images(forward));
-  // Extra short-video lanes beside Prelinger: Commons needs no key; Pexels clips need the Pexels key.
+  // Extra short-video lanes beside Prelinger: Commons and NASA need no key;
+  // Pexels and Pixabay clips unlock with their free keys.
   const clip = (ref: Reference) => forward({ type: 'candidate', atMs: 0, source: ref.sourceKey!, reference: ref });
   if (providerKeyValue('PEXELS_API_KEY')) tasks.push(collectPexelsVideos(input.brief, signal, clip, 8).then(() => {}, () => {}));
+  if (providerKeyValue('PIXABAY_API_KEY')) tasks.push(collectPixabayVideos(input.brief, signal, clip, 8).then(() => {}, () => {}));
   tasks.push(collectCommonsVideos(input.brief, signal, clip, 6).then(() => {}, () => {}));
+  tasks.push(collectNasaVideos(input.brief, signal, clip, 5).then(() => {}, () => {}));
   await Promise.all(tasks);
   if (signal.aborted) return;
   send({ type: 'retrieval-complete', atMs: Math.round(performance.now() - began), count });

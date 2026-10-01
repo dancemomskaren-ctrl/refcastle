@@ -9,7 +9,7 @@ export function validateMedia(value: unknown): MediaMode {
 }
 
 /** Video hosts the player is allowed to stream from. Each maps to a vetted source adapter. */
-const VIDEO_HOSTS = new Set(['archive.org', 'videos.pexels.com', 'upload.wikimedia.org']);
+const VIDEO_HOSTS = new Set(['archive.org', 'videos.pexels.com', 'upload.wikimedia.org', 'cdn.pixabay.com', 'images-assets.nasa.gov']);
 
 export function safeVideo(video: Reference['video']): boolean {
   if (!video || !Number.isFinite(video.durationSeconds) || video.durationSeconds <= 0 || video.durationSeconds > MAX_VIDEO_SECONDS) return false;
@@ -18,8 +18,8 @@ export function safeVideo(video: Reference['video']): boolean {
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
     if (!VIDEO_HOSTS.has(url.hostname)) return false;
     if (url.hostname === 'archive.org') return url.pathname.startsWith('/download/') && url.pathname.endsWith('.mp4');
-    if (url.hostname === 'videos.pexels.com') return url.pathname.endsWith('.mp4');
-    return /\.(webm|ogg|ogv)$/i.test(url.pathname);
+    if (url.hostname === 'upload.wikimedia.org') return /\.(webm|ogg|ogv)$/i.test(url.pathname);
+    return url.pathname.endsWith('.mp4');
   } catch { return false; }
 }
 

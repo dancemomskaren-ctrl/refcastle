@@ -51,7 +51,7 @@ export interface Review {
 }
 
 export type SourceKey = 'met' | 'cosmos' | 'nasa' | 'unsplash' | 'pexels' | 'openverse' | 'flickr' | 'pinterest';
-export type MediaSourceKey = SourceKey | 'archive' | 'pexelsvideo' | 'commonsvideo';
+export type MediaSourceKey = SourceKey | 'archive' | 'pexelsvideo' | 'commonsvideo' | 'pixabayvideo' | 'nasavideo';
 export type MediaMode = 'images' | 'videos' | 'both';
 export type CreatorInput = { brief: string; selected: string[]; styles?: string[]; media?: MediaMode };
 export type SourceStatus = 'waiting' | 'searching' | 'ready' | 'error';

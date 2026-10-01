@@ -4,7 +4,7 @@ import type { SourceKey } from '../src/types';
 
 const legacy: SourceKey[] = ['met', 'nasa', 'cosmos'];
 
-const none = () => ({ ...emptyCounts(), archive: 0, pexelsvideo: 0, commonsvideo: 0 });
+const none = () => ({ ...emptyCounts(), archive: 0, pexelsvideo: 0, commonsvideo: 0, pixabayvideo: 0, nasavideo: 0 });
 
 test('batch budgets close accumulated source deficits and preserve the target', () => {
   expect(sourceQuotas(30, { ...none(), met: 0, nasa: 10, cosmos: 33 }, legacy)).toEqual({ ...emptyCounts(), met: 20, nasa: 10, cosmos: 0 });

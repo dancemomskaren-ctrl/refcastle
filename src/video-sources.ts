@@ -98,3 +98,105 @@ export async function collectCommonsVideos(query: string, signal: AbortSignal, r
   }
   return count;
 }
+
+// Pixabay Videos: same style of free key as Pexels; per-rendition mp4s ship with durations and posters.
+const PIXABAY_SIZES = ['large', 'medium', 'small', 'tiny'] as const;
+export function pixabayVideoReference(hit: any): Reference | undefined {
+  if (!hit || !Number.isSafeInteger(hit.id)) return;
+  const duration = Number(hit.duration);
+  if (!bounded(duration)) return;
+  const renditions = PIXABAY_SIZES.map(size => ({ size, ...(hit.videos?.[size] || {}) })).filter((file: any) => typeof file.url === 'string' && file.url.startsWith('https://cdn.pixabay.com/') && file.url.endsWith('.mp4') && bounded(duration, file.size) && Number(file.width) >= 640 && Number(file.width) <= 1920);
+  const file = renditions[0];
+  const poster = typeof file?.thumbnail === 'string' && file.thumbnail.startsWith('https://cdn.pixabay.com/') ? file.thumbnail : '';
+  if (!file || !poster) return;
+  const tags = clean(hit.tags, 110);
+  return {
+    id: `pixabayvideo-${hit.id}`,
+    title: tags ? tags.split(',').slice(0, 3).join(' · ') : `Pixabay clip ${hit.id}`,
+    description: 'A royalty-free clip from Pixabay. Open the original page for the Content License terms.',
+    credit: `${clean(hit.user) || 'Pixabay contributor'} / Pixabay`,
+    date: '',
+    image: poster,
+    source: clean(hit.pageURL, 300) || `https://pixabay.com/videos/id-${hit.id}/`,
+    collection: 'Stock footage',
+    sourceName: 'Pixabay',
+    sourceKey: 'pixabayvideo' as const,
+    descriptionOrigin: 'Pixabay clip metadata; the Content License applies, attribution is appreciated but not required.',
+    video: { url: file.url, durationSeconds: duration },
+  };
+}
+
+export async function collectPixabayVideos(query: string, signal: AbortSignal, receive: (ref: Reference) => void, limit: number): Promise<number> {
+  const key = providerKeyValue('PIXABAY_API_KEY');
+  const payload = await getJson(`https://pixabay.com/api/videos/?key=${encodeURIComponent(key)}&q=${encodeURIComponent(query)}&safesearch=true&per_page=${Math.min(15, Math.max(3, limit))}`, signal);
+  let count = 0;
+  for (const hit of payload?.hits || []) {
+    if (count >= limit) break;
+    const ref = pixabayVideoReference(hit);
+    if (!ref) continue;
+    receive(ref);
+    count++;
+  }
+  return count;
+}
+
+// NASA video: keyless. Durations live in a per-item metadata.json (QuickTime:Duration),
+// playable mp4 renditions in the asset list. Two extra bounded requests per accepted item.
+export function nasaVideoDuration(metadata: any): number | undefined {
+  const raw = metadata?.['QuickTime:Duration'] ?? metadata?.['QuickTime:MediaDuration'];
+  if (raw === undefined || raw === null) return;
+  const text = String(raw).trim();
+  // Metadata stores clock values such as '0:02:08' as well as plain seconds.
+  const clock = text.match(/^(?:(\d+):)?(\d{1,2}):(\d{2}(?:\.\d+)?)$/);
+  const seconds = clock ? Number(clock[1] || 0) * 3600 + Number(clock[2]) * 60 + Number(clock[3]) : Number(text.replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  return seconds;
+}
+
+// Small renditions stream quickly in previews; orig is the last resort.
+const NASA_RENDITIONS = ['small', 'medium', 'preview', 'mobile', 'large', 'orig'];
+export function nasaVideoAssetUrl(assets: string[]): string | undefined {
+  const mp4 = assets.filter(url => /^https?:\/\/images-assets\.nasa\.gov\/.+\.mp4$/.test(url));
+  for (const name of NASA_RENDITIONS) {
+    const found = mp4.find(url => url.endsWith(`~${name}.mp4`));
+    if (found) return found.replace(/^http:\/\//, 'https://');
+  }
+  return mp4[0]?.replace(/^http:\/\//, 'https://');
+}
+
+export async function collectNasaVideos(query: string, signal: AbortSignal, receive: (ref: Reference) => void, limit: number, page = 1): Promise<number> {
+  const payload = await getJson(`https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}&media_type=video&year_start=1920&page_size=${Math.min(30, Math.max(2, limit * 3))}&page=${Math.max(1, page)}`, signal);
+  const items: any[] = payload?.collection?.items || [];
+  let count = 0;
+  for (const item of items) {
+    if (count >= limit) break;
+    const data = item?.data?.[0];
+    const nasaId = data?.nasa_id;
+    if (!nasaId) continue;
+    try {
+      const meta = await getJson(`https://images-api.nasa.gov/metadata/${encodeURIComponent(nasaId)}`, signal).then(body => getJson(body.location, signal));
+      const duration = nasaVideoDuration(meta);
+      if (!duration || !bounded(duration)) continue;
+      const assets = await getJson(`https://images-api.nasa.gov/asset/${encodeURIComponent(nasaId)}`, signal).then(body => (body?.collection?.items || []).map((row: any) => row?.href).filter((href: unknown) => typeof href === 'string'));
+      const mp4 = nasaVideoAssetUrl(assets);
+      if (!mp4) continue;
+      const poster = item?.links?.find((link: any) => link?.render === 'image' && typeof link.href === 'string' && link.href.startsWith('https://images-assets.nasa.gov/'))?.href;
+      receive({
+        id: `nasavideo-${nasaId}`,
+        title: clean(data.title, 110) || 'NASA clip',
+        description: clean(data.description, 600) || 'A short video from the NASA image and video library.',
+        credit: clean(data.photographer || data.secondary_creator || data.center || 'NASA', 180),
+        date: clean(data.date_created, 40),
+        image: poster || '',
+        source: `https://images.nasa.gov/details/${encodeURIComponent(nasaId)}`,
+        collection: 'NASA video library',
+        sourceName: 'NASA',
+        sourceKey: 'nasavideo' as const,
+        descriptionOrigin: 'NASA catalog metadata, retrieved during this run. Check NASA media use rules before reuse.',
+        video: { url: mp4, durationSeconds: duration },
+      });
+      count++;
+    } catch { /* One unavailable item does not discard the rest. */ }
+  }
+  return count;
+}

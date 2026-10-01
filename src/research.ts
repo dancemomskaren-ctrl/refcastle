@@ -110,7 +110,7 @@ export async function runResearch(input: { brief: string; selected: string[]; mo
         selected.push(decision.id);
         const reference = pool.find(ref => ref.id === decision.id)!;
         const lane = reference.sourceKey;
-        if (lane && lane !== 'archive' && lane !== 'pexelsvideo' && lane !== 'commonsvideo') pageTasks.push(browser.inspect(lane, reference.source));
+        if (lane === 'met' || lane === 'cosmos' || lane === 'nasa') pageTasks.push(browser.inspect(lane, reference.source));
       }
     }
     // Page navigation is separate from retrieval and decision timing, but inside the full clock.

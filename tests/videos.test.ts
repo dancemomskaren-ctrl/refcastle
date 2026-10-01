@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { archiveQueryOptions, archiveReference, archiveSearchUrl, collectArchiveVideos, runMediaBatch } from '../src/archive-videos';
+import { nasaVideoDuration, nasaVideoAssetUrl, pixabayVideoReference } from '../src/video-sources';
 import { validateMedia, safeArchiveVideo } from '../src/media';
 import { VideoPreviews } from '../src/video-previews';
 import { GalleryCollection } from '../src/gallery-loading';
@@ -51,7 +52,7 @@ test('archive streaming deduplicates, bounds requests, paginates and keeps video
   expect(first).toHaveLength(12); expect(peak).toBeLessThanOrEqual(3);
   const gallery = new GalleryCollection();
   for (const event of first) if (event.type === 'candidate') gallery.add(event.reference);
-  expect(gallery.sources).toEqual({ met: 0, cosmos: 0, nasa: 0, archive: 12, unsplash: 0, pexels: 0, openverse: 0, flickr: 0, pinterest: 0, pexelsvideo: 0, commonsvideo: 0 });
+  expect(gallery.sources).toEqual({ met: 0, cosmos: 0, nasa: 0, archive: 12, unsplash: 0, pexels: 0, openverse: 0, flickr: 0, pinterest: 0, pexelsvideo: 0, commonsvideo: 0, pixabayvideo: 0, nasavideo: 0 });
   const resumed = readCursor(saveCursor(context, 0)).context;
   resumed.round = 1; // Same query must advance its page, not replay page one.
   await collectArchiveVideos({ brief: 'coffee commercials', selected: [] }, new AbortController().signal, event => sent.push(event), resumed, undefined, fake);
@@ -95,6 +96,29 @@ test('image-only mode makes no archive requests and hosted validation forwards v
   await (await handleResearch(request('both'), async input => { media = input.media; })).text();
   expect(media).toBe('both');
   expect((await handleResearch(request('arbitrary'))).status).toBe(400);
+});
+
+test('NASA metadata parsing reads clock durations and picks a streamable rendition', () => {
+  expect(nasaVideoDuration({ 'QuickTime:Duration': '0:02:08' })).toBe(128);
+  expect(nasaVideoDuration({ 'QuickTime:Duration': '1:00:00' })).toBe(3600);
+  expect(nasaVideoDuration({ 'QuickTime:Duration': '45.5 s' })).toBe(45.5);
+  expect(nasaVideoDuration({ 'QuickTime:Duration': '12' })).toBe(12);
+  expect(nasaVideoDuration({})).toBeUndefined();
+  expect(nasaVideoDuration({ 'QuickTime:Duration': '0:25:00' })).toBeGreaterThan(180); // long clips survive parsing but fail the budget later
+  expect(nasaVideoAssetUrl(['http://images-assets.nasa.gov/v/x~orig.mp4', 'http://images-assets.nasa.gov/v/x~small.mp4', 'https://images-assets.nasa.gov/v/x.jpg'])).toBe('https://images-assets.nasa.gov/v/x~small.mp4');
+  expect(nasaVideoAssetUrl(['http://images-assets.nasa.gov/v/x~mobile.mp4'])).toBe('https://images-assets.nasa.gov/v/x~mobile.mp4');
+  expect(nasaVideoAssetUrl(['https://images-assets.nasa.gov/v/x.jpg'])).toBeUndefined();
+});
+
+test('Pixabay clips require a bounded duration, an mp4 rendition and a Pixabay poster', () => {
+  const hit = (over: Record<string, unknown> = {}) => ({ id: 125, duration: 12, tags: 'flowers, yellow, blossom', pageURL: 'https://pixabay.com/videos/id-125/', user: 'Coverr', videos: { medium: { url: 'https://cdn.pixabay.com/video/125_medium.mp4', width: 1280, size: 3562083, thumbnail: 'https://cdn.pixabay.com/video/125_medium.jpg' } }, ...over });
+  const ref = pixabayVideoReference(hit())!;
+  expect(ref?.id).toBe('pixabayvideo-125');
+  expect(ref?.video).toEqual({ url: 'https://cdn.pixabay.com/video/125_medium.mp4', durationSeconds: 12 });
+  expect(ref?.image).toContain('cdn.pixabay.com');
+  expect(pixabayVideoReference(hit({ duration: 999 }))).toBeUndefined();
+  expect(pixabayVideoReference(hit({ videos: { medium: { url: 'https://evil.example/a.mp4', width: 1280, size: 1, thumbnail: 'https://cdn.pixabay.com/a.jpg' } } }))).toBeUndefined();
+  expect(pixabayVideoReference(hit({ videos: {} }))).toBeUndefined();
 });
 
 test('visible previews autoplay within a decoder budget, rotate fairly and release on hide or clear', () => {

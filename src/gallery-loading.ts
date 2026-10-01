@@ -2,7 +2,7 @@ import { referenceSource, emptyCounts } from './source-balance';
 import type { Reference, MediaSourceKey } from './types';
 import { ReferenceIdentity } from './reference-identity';
 
-const VIDEO_LANES = { archive: 0, pexelsvideo: 0, commonsvideo: 0 } as Record<'archive' | 'pexelsvideo' | 'commonsvideo', number>;
+const VIDEO_LANES = { archive: 0, pexelsvideo: 0, commonsvideo: 0, pixabayvideo: 0, nasavideo: 0 } as Record<'archive' | 'pexelsvideo' | 'commonsvideo' | 'pixabayvideo' | 'nasavideo', number>;
 const emptyGallerySources = (): Record<MediaSourceKey, number> => ({ ...emptyCounts(), ...VIDEO_LANES });
 
 export const PRIORITY_IMAGES = 100;

@@ -340,7 +340,7 @@ function handleEvent(event: ResearchEvent, restoring = false) {
     reviews.push(event.review); $('astra-time').textContent = seconds(event.review.durationMs); $('astra-action').textContent = event.review.stage === 'plan' ? 'Direction ready' : 'Board reviewed'; $('astra-summary').textContent = event.review.summary;
     log(event.atMs, 'Astra', event.review.summary); renderBoard();
   } else if (event.type === 'source') {
-    const state = event.source; if (state.key === 'archive' || state.key === 'pexelsvideo' || state.key === 'commonsvideo') return;
+    const state = event.source; if (state.key !== 'met' && state.key !== 'cosmos' && state.key !== 'nasa' && state.key !== 'unsplash' && state.key !== 'pexels' && state.key !== 'openverse' && state.key !== 'flickr' && state.key !== 'pinterest') return;
     const previous = sourceStates.get(state.key);
     sourceStates.set(state.key, state); sourceStarted.set(state.key, performance.now() - state.elapsedMs);
     $<HTMLInputElement>(`${state.key}-query`).value = state.query;
@@ -352,7 +352,7 @@ function handleEvent(event: ResearchEvent, restoring = false) {
     if (state.status !== previous?.status && state.status === 'ready') log(event.atMs, SOURCE_NAMES[state.key], `${state.found} references collected in ${seconds(state.elapsedMs)}`);
     if (state.status === 'error') { log(event.atMs, SOURCE_NAMES[state.key], state.error || 'Source unavailable'); $(`${state.key}-first`).textContent = state.error || 'Source unavailable'; $(`${state.key}-first`).classList.add('source-error'); }
   } else if (event.type === 'candidate') {
-    if (event.source === 'archive' || event.source === 'pexelsvideo' || event.source === 'commonsvideo') return;
+    if (event.source !== 'met' && event.source !== 'cosmos' && event.source !== 'nasa' && event.source !== 'unsplash' && event.source !== 'pexels' && event.source !== 'openverse' && event.source !== 'flickr' && event.source !== 'pinterest') return;
     addCandidate(event.source, event.reference); firstResultMs ??= event.atMs;
     log(event.atMs, SOURCE_NAMES[event.source], event.reference.title);
     renderMetrics();

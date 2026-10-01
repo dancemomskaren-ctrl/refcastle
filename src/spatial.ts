@@ -364,7 +364,7 @@ async function connectStatus() {
     const response = await fetch('/api/status', { signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error();
     const result = await response.json();
-    $('video-hint-key').hidden = Boolean(result.videoSources?.pexels);
+    $('video-hint-key').hidden = Boolean(result.videoSources?.pexels) && Boolean(result.videoSources?.pixabay);
     sourceStatus = { active: result.activeSources || activeSourceKeys(), inactive: result.inactiveSources || [] };
     localMode = ['localhost', '127.0.0.1'].includes(location.hostname) && result.hosted !== true;
     hosted = !localMode;
